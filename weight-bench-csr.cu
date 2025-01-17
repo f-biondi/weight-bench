@@ -3,7 +3,8 @@
 #include <math.h>
 #include <cuda_fp16.h>
 #include <cuda.h>
-#include <cusparse.h>         
+#include <chrono>
+#include <cusparse.h>
 
 #define THREAD_N 256
 
@@ -55,7 +56,7 @@ int main(void) {
     size_t edge_size = edge_n * sizeof(int);
     int current_splitter_index = 0;
 
-    int *d_node_n, *d_new_node_blocks, *d_node_blocks, *d_current_splitter_index, 
+    int *d_node_n, *d_new_node_blocks, *d_node_blocks, *d_current_splitter_index,
         *d_max_node_w, *d_splitters, *d_splitters_mask, *d_weight_adv, *d_swap,
         *d_values, *d_rows, *d_columns;
 
@@ -97,6 +98,7 @@ int main(void) {
     CHECK_CUDA( cudaMemset(d_splitters, 0, node_size) );
     CHECK_CUDA( cudaMemset(d_splitters_mask, 0, node_size) );
     CHECK_CUDA( cudaMemset(d_current_splitter_index, 0, sizeof(int)) );
+    auto start = std::chrono::steady_clock::now();
 
     CHECK_CUDA( cudaMemcpy(d_node_n, &node_n, sizeof(int), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_max_node_w, &max_node_w, sizeof(int), cudaMemcpyHostToDevice) );
@@ -130,22 +132,15 @@ int main(void) {
     CHECK_CUDA( cudaMalloc(&dBuffer, bufferSize) )
 
     compute_weight_mask<<<BLOCK_N, THREAD_N>>>(d_node_n, d_weight_mask, d_node_blocks, d_splitters, d_splitters_mask, d_current_splitter_index);
-    cudaDeviceSynchronize(); 
+    cudaDeviceSynchronize();
 
     CHECK_CUSPARSE( cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                  &alpha, adj_mat, vecX, &beta, vecY, CUDA_R_32F,
                                  CUSPARSE_SPMV_ALG_DEFAULT, dBuffer) );
 
-    cudaDeviceSynchronize(); 
-
-    __half *result = (__half*)malloc(node_n * sizeof(__half));
-    CHECK_CUDA( cudaMemcpy(result, d_weights, node_n * sizeof(__half), cudaMemcpyDeviceToHost) );
-
-    printf("[%f", (float)result[0]);
-    for (int i=1; i<node_n; ++i) {
-        printf(",%f", (float)result[i]);
-    }
-    printf("]");
+    cudaDeviceSynchronize();
+    auto end = std::chrono::steady_clock::now();
+    printf("%f\n",std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0);
 
     return 0;
 }
@@ -158,8 +153,8 @@ int* read_file_graph(int* edge_n, int* node_n, int* max_node_w) {
     size_t index_size = (*edge_n) * 2 * sizeof(int);
     int *edge_index = (int*)malloc(index_size);
     for(int i=0; i<(*edge_n); ++i) {
-        edge_index[i] = read_file_int(file); 
-        edge_index[(*edge_n) + i] = read_file_int(file); 
+        edge_index[i] = read_file_int(file);
+        edge_index[(*edge_n) + i] = read_file_int(file);
         weights[edge_index[i]]++;
         if(weights[edge_index[i]] > *max_node_w) {
             *max_node_w = weights[edge_index[i]];
@@ -174,7 +169,7 @@ int read_file_int(FILE *file) {
     int n = 0;
     int c = 0;
     while(ch != ' ' && ch != '\n') {
-        c = ch - '0';   
+        c = ch - '0';
         n = (n*10) + c;
         ch = fgetc(file);
     }
