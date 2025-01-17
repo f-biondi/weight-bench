@@ -132,7 +132,6 @@ int main(void) {
     CHECK_CUDA( cudaMalloc(&dBuffer, bufferSize) )
 
     compute_weight_mask<<<BLOCK_N, THREAD_N>>>(d_node_n, d_weight_mask, d_node_blocks, d_splitters, d_splitters_mask, d_current_splitter_index);
-    cudaDeviceSynchronize();
 
     CHECK_CUSPARSE( cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                  &alpha, adj_mat, vecX, &beta, vecY, CUDA_R_32F,
