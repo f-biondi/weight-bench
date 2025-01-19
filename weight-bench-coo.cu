@@ -58,10 +58,9 @@ int main(void) {
 
     int *d_node_n, *d_new_node_blocks, *d_node_blocks, *d_current_splitter_index,
         *d_max_node_w, *d_splitters, *d_splitters_mask, *d_weight_adv, *d_swap,
-        *d_values, *d_rows, *d_columns;
+        *d_rows, *d_columns;
 
-    __half *d_weights;
-    __half *d_weight_mask;
+    __half *d_weights, *d_weight_mask, *d_values;
 
     CHECK_CUDA( cudaMalloc((void **)&d_weights, node_n * sizeof(__half)) );
     CHECK_CUDA( cudaMalloc((void **)&d_weight_mask, node_n * sizeof(__half)) );
@@ -75,7 +74,7 @@ int main(void) {
     CHECK_CUDA( cudaMalloc((void **)&d_max_node_w, sizeof(int)) );
     CHECK_CUDA( cudaMalloc((void **)&d_rows, edge_size) );
     CHECK_CUDA( cudaMalloc((void **)&d_columns, edge_size) );
-    CHECK_CUDA( cudaMalloc((void **)&d_values, edge_size) );
+    CHECK_CUDA( cudaMalloc((void **)&d_values, edge_n*sizeof(__half)) );
 
     CHECK_CUDA( cudaMemset(d_weights, 0, node_n * sizeof(__half)) );
     CHECK_CUDA( cudaMemset(d_new_node_blocks, 0, node_size) );
@@ -83,13 +82,13 @@ int main(void) {
     CHECK_CUDA( cudaMemset(d_splitters, 0, node_size) );
     CHECK_CUDA( cudaMemset(d_splitters_mask, 0, node_size) );
     CHECK_CUDA( cudaMemset(d_current_splitter_index, 0, sizeof(int)) );
+    auto start = std::chrono::steady_clock::now();
 
     CHECK_CUDA( cudaMemcpy(d_node_n, &node_n, sizeof(int), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_max_node_w, &max_node_w, sizeof(int), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_rows, edge_index, edge_size, cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_columns, edge_index + edge_n, edge_size, cudaMemcpyHostToDevice) );
-    CHECK_CUDA( cudaMemcpy(d_values, values, edge_size, cudaMemcpyHostToDevice) );
-    auto start = std::chrono::steady_clock::now();
+    CHECK_CUDA( cudaMemcpy(d_values, values, edge_n*sizeof(__half), cudaMemcpyHostToDevice) );
 
     cusparseHandle_t handle = NULL;
     cusparseSpMatDescr_t adj_mat;
@@ -127,6 +126,14 @@ int main(void) {
     cudaDeviceSynchronize();
     auto end = std::chrono::steady_clock::now();
     printf("%f\n",std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0);
+    /*__half *weights = (__half*)malloc(node_n * sizeof(__half));
+    CHECK_CUDA( cudaMemcpy(weights, d_weights, node_n * sizeof(__half), cudaMemcpyDeviceToHost) );
+    for(int i=0; i<node_n; ++i) {
+        printf("%f ", ((float) weights[i]));
+    }
+    printf("\n");*/
+
+
 
     return 0;
 }
