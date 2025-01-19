@@ -186,6 +186,7 @@ sell_data_t gen_sell(int* edge_index, int edge_n, int node_n, int n_slices) {
     sell_data_t res;
     res.slice_size = ceil((float)node_n / n_slices);
     res.slice_offsets = (int*)calloc(n_slices + 1, sizeof(int));
+    int* node_index_of = (int*)malloc(node_n * sizeof(int));
     int* connections_n = (int*)calloc(node_n, sizeof(int));
     int* connections_sum = (int*)malloc(node_n * sizeof(int));
     int* connections_strided = (int*)malloc(edge_n * sizeof(int));
@@ -209,6 +210,10 @@ sell_data_t gen_sell(int* edge_index, int edge_n, int node_n, int n_slices) {
     }
 
     qsort(res.sorted_nodes, node_n, sizeof(node_connections_t), nodecmp);
+    for(int i =0;i<node_n;++i) {
+        node_connections_t c = res.sorted_nodes[i];
+        node_index_of[c.node] = i;
+    }
 
     for(int i=0; i<edge_n; ++i) {
         int node = edge_index[i];
@@ -239,10 +244,10 @@ sell_data_t gen_sell(int* edge_index, int edge_n, int node_n, int n_slices) {
         for(int k=0; k<padding_sizes[i]; ++k) {
             for(int c=0; c<res.slice_size; ++c) {
                 int node_index = (i * res.slice_size) + c;
-                if(node_index < node_n) { 
+                if(node_index < node_n) {
                     int node = res.sorted_nodes[node_index].node;
                     if (connections_cur[node] < connections_n[node]) {
-                        res.column_indices[values_last] = connections_strided[connections_sum[node] + connections_cur[node]];
+                        res.column_indices[values_last] = node_index_of[connections_strided[connections_sum[node] + connections_cur[node]]];
                         res.values[values_last] = 1.0;
                         connections_cur[node]++;
                     } else {
@@ -255,7 +260,7 @@ sell_data_t gen_sell(int* edge_index, int edge_n, int node_n, int n_slices) {
                 }
                 ++values_last;
             }
-        }    
+        }
     }
 
     free(connections_n);
@@ -263,7 +268,8 @@ sell_data_t gen_sell(int* edge_index, int edge_n, int node_n, int n_slices) {
     free(connections_strided);
     free(connections_cur);
     free(padding_sizes);
-    
+    free(node_index_of);
+
     return res;
 }
 
