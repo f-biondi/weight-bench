@@ -104,8 +104,6 @@ int main(void) {
     CHECK_CUDA( cudaMemcpy(d_columns, edge_index + edge_n, edge_size, cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_values, values, edge_n * sizeof(__half), cudaMemcpyHostToDevice) );
 
-    auto start = std::chrono::steady_clock::now();
-
     cusparseHandle_t handle = NULL;
     cusparseSpMatDescr_t adj_mat;
     cusparseDnVecDescr_t vecX, vecY;
@@ -130,6 +128,8 @@ int main(void) {
                                  CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize) );
 
     CHECK_CUDA( cudaMalloc(&dBuffer, bufferSize) )
+    cudaDeviceSynchronize();
+    auto start = std::chrono::steady_clock::now();
 
     compute_weight_mask<<<BLOCK_N, THREAD_N>>>(d_node_n, d_weight_mask, d_node_blocks, d_splitters, d_splitters_mask, d_current_splitter_index);
 
