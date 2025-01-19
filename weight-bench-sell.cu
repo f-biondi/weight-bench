@@ -105,13 +105,14 @@ int main(int argc, char **argv) {
     CHECK_CUDA( cudaMemset(d_splitters, 0, node_size) );
     CHECK_CUDA( cudaMemset(d_splitters_mask, 0, node_size) );
     CHECK_CUDA( cudaMemset(d_current_splitter_index, 0, sizeof(int)) );
-    auto start = std::chrono::steady_clock::now();
 
     CHECK_CUDA( cudaMemcpy(d_values, sell_data.values, sell_data.sell_values_size * sizeof(__half), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_slice_offsets, sell_data.slice_offsets, (n_slices + 1) * sizeof(int), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_columns, sell_data.column_indices, sell_data.sell_values_size * sizeof(int), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_node_n, &node_n, sizeof(int), cudaMemcpyHostToDevice) );
     CHECK_CUDA( cudaMemcpy(d_max_node_w, &max_node_w, sizeof(int), cudaMemcpyHostToDevice) );
+    auto start = std::chrono::steady_clock::now();
+
 
     cusparseHandle_t handle = NULL;
     cusparseSpMatDescr_t adj_mat;
