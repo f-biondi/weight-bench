@@ -140,7 +140,6 @@ edge_index_t read_file_graph(int* edge_n, int* node_n, int* max_node_w) {
         tot+=max(weights[i], 128);
         res.edge_offset[i] = i ? res.edge_offset[i-1] + weights[i] : weights[i];
     }
-    printf("%d %d\n", *edge_n, tot);
     free(weights);
     return res;
 }
